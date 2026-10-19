@@ -3,19 +3,15 @@
 
 ## 1. Regulação vs. Negócio
 
-Para viabilizar essa operação de forma segura para o negócio e auditável para o regulador, a Genial deve atuar da seguinte forma:
-
 1. **Clareza Visual da Interface:** O alerta no aplicativo deve ser claro, mostrando números da operação (ex: *"Sua carteira passará de 1.67 para 2.82, ultrapassando seu limite de 2.75"*). Para assegurar que o usuário leu o aviso, a caixa de confirmação deve iniciar desmarcada e o botão de compra permanecer desabilitado, sendo liberado apenas após o clique do cliente e a confirmação biométrica.
 
-2. **Armazenamento do Documento:** O documento do termo legal em si (PDF ou texto padrão) fica armazenado em um serviço de arquivos, evitando sobrecarregar o banco de dados com arquivos pesados.
-
-3. **Registro no Banco de Dados**: A tabela de ordens no banco de dados armazena apenas os metadados da operação:
+2. **Armazenamento de dados:** O PDF/texto do termo fica em um object storage, evitando sobrecarregar o banco de dados. A tabela de ordens no banco de dados armazena apenas os metadados da operação e o ponteiro para o termo:
    - Identificador do cliente, da ordem e carimbo de data/hora do aceite;
    - Link/caminho da versão do documento no storage;
-   - Hash (SHA-256) do termo aceito: garante a integridade do documento;
+   - Hash (SHA-256) do termo aceito, garante a integridade do documento;
    - Valores de risco calculados no momento (risco atual, projetado e limite).
 
-4. **Logs de Auditoria:** O sistema deve gerar logs técnicos imutáveis como tabela append-only ou storage com object lock. Registrando endereço de IP, identificador de dispositivo, token de sessão do cliente e confirmação de validação biométrica (FaceID ou TouchID), comprovando que realmente o usuário efetuou a operação. 
+3. **Logs de Auditoria:** O sistema deve gerar logs técnicos imutáveis como tabela append-only ou storage com object lock, registrando endereço de IP, identificador de dispositivo, token de sessão do cliente e confirmação de validação biométrica (FaceID ou TouchID), para comprovar que realmente o usuário efetuou a operação. 
 
 
 ## 2. Desenquadramento Passivo
@@ -44,6 +40,4 @@ cliente, mas não define a fronteira exata para a rejeição (trazendo apenas o 
 3.5). Desta forma para montar o motor assumi uma tolerância de 20% acima do score máximo como limite para o desenquadramento leve.
 Ou seja, entre 10% e 20% acima do teto, a ordem ainda pode ser liberada mediante termo de ciência. Acima dos 20%, o risco se torna excessivo e o motor rejeita a operação sumariamente.
 
-### Separação entre estado da carteira e decisão da ordem
-
-A lógica foi dividida em duas funções com propósitos distintos. A função `classificar_risco` avalia apenas o risco da carteira do cliente (retornando se a carteira está em conformidade, em desenquadramento leve ou severo). Já a função `validar_suitability` usa essa classificação para tomar uma decisão sobre a compra (Aprovado, Alerta ou Rejeitado). Essa separação permite que a rotina noturna utilize a mesma função de enquadramento da carteira.
+A arquitetura foi pensada para manter o motor desacoplado, a função `classificar_risco` cuida puramente do enquadramento técnico da carteira, enquanto a `validar_suitability` atua como camada de governança da ordem de compra. Esse isolamento permite que a rotina noturna em lote reutilize a mesma função, sem duplicação de lógica.
