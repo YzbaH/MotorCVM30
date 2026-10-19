@@ -9,6 +9,8 @@ def calculo_risco(carteira: list):
     for ativo in carteira:
         risco += ativo["valor_investido"] * ativo["risco"]
         valor += ativo["valor_investido"]
+    if valor == 0:
+        return 0.0
     return round(risco / valor, 2)
 
 
